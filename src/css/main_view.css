@@ -1,3 +1,7 @@
-/* .backgroundColor{
-    background-color: green;
-} */
+@import "../index.css";
+
+.button-hover:hover {
+  background-color: var(--primary-color);
+}
+
+
