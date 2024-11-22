@@ -4,18 +4,22 @@ import { Button, Card } from "react-bootstrap";
 import LoginImage from "../image/login_image.png";
 import LogoTitle from "../image/logo_title.png";
 import { Link } from "react-router-dom";
+import { useToast } from "../components/useToast";
+
 export const LoginPage = () =>{
+    const { success, errormsg } = useToast();
 
     const handleLogin = () => {
+        //default email and password
         const email = "test@example.com";
         const password = "password123";
         const inputEmail = document.querySelector('input[type="text"]').value;
         const inputPassword = document.querySelector('input[type="password"]').value;
 
         if (inputEmail === email && inputPassword === password) {
-            alert("Login successful!");
+            success("Login successful");
         } else {
-            alert("Invalid email or password.");
+            errormsg("Invalid email or password.");
         }
     };
 
