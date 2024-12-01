@@ -4,4 +4,6 @@
   background-color: var(--primary-color);
 }
 
-
+.buttonNav-hover:hover {
+  background-color: var(--highlight-color);
+}
