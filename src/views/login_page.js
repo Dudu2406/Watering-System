@@ -6,10 +6,13 @@ import LogoTitle from "../image/logo_title.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useToast } from "../components/useToast";
 import { getFirestore, collection, query, where, getDocs } from "firebase/firestore";
+import { Question } from "react-bootstrap-icons";
+import { TutorialComponent } from "../components/tutorial";
 
 export const LoginPage = () =>{
     const { success, errormsg } = useToast();
     const navigate = useNavigate();
+    const [isOpen, setIsOpen] = React.useState(false);
 
     const handleFirestoreLogin = async () => {
         const email = document.querySelector('input[type="text"]').value;
@@ -30,6 +33,14 @@ export const LoginPage = () =>{
             errormsg("Invalid email or password.");
         }
     };
+
+    const openTutorial = () => {
+        setIsOpen(true);
+    }
+
+    const closeTutorial = () => {
+        setIsOpen(false);
+    }
 
     return <>
     <div className="d-flex" style={{ height: "100vh" }}>
@@ -56,6 +67,17 @@ export const LoginPage = () =>{
                 </Card.Body>
             </Card>
        </div>
+       <div>
+            <Button 
+                variant="light" 
+                onClick={openTutorial} 
+                className="position-fixed rounded-circle" 
+                style={{ bottom: "20px", right: "20px", width: "50px", height: "50px", zIndex: 1000 }}
+            >
+                <Question size={24} />
+            </Button>
+       </div>
+       <TutorialComponent pageLocation="login" isOpen={isOpen} onClose={closeTutorial} />
     </div>
     </>
 }

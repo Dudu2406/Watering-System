@@ -8,6 +8,9 @@ import { getFirestore, doc, setDoc } from "firebase/firestore";
 import '../firebase';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from "../components/useToast";
+import { Question } from "react-bootstrap-icons";
+import { TutorialComponent } from "../components/tutorial";
+
 
 export const RegisterPage = () =>{
     const db = getFirestore();
@@ -20,11 +23,27 @@ export const RegisterPage = () =>{
     const [confirmPassword, setConfirmPassword] = useState("");
     const [error, setError] = useState("");
 
+    const [isOpen, setIsOpen] = useState(false);
+
+    const openTutorial = () => {
+        setIsOpen(true);
+    }
+
+    const closeTutorial = () => {
+        setIsOpen(false);
+    }
+
+    //stores the user's information in the database
     const handleRegister = async () => {
+        if (error) {
+            return;
+        }
+
         if (password !== confirmPassword) {
             setError("Passwords do not match");
             return;
         }
+
         try {
             const userId = uuidv4(); 
             const userRef = doc(db, "users", userId); 
@@ -43,6 +62,7 @@ export const RegisterPage = () =>{
         }
     };
     
+    //checks if the email is in the correct format
     const handleEmailChange = (e) => {
         setEmail(e.target.value);
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -53,6 +73,7 @@ export const RegisterPage = () =>{
         }
     };
 
+    //checks if the password is the same as the confirm password
     const handlePasswordChange = (e) => {
         setPassword(e.target.value);
         if (confirmPassword && e.target.value !== confirmPassword) {
@@ -100,6 +121,17 @@ export const RegisterPage = () =>{
                     </Card.Body>
                 </Card>
             </div>
+            <div>
+            <Button 
+                variant="light" 
+                className="position-fixed rounded-circle" 
+                onClick={openTutorial}
+                style={{ bottom: "20px", right: "20px", width: "50px", height: "50px", zIndex: 1000 }}
+            >
+                <Question size={24} />
+            </Button>
+       </div>
+         <TutorialComponent pageLocation="register" isOpen={isOpen} onClose={closeTutorial} />
         </div>
     );
 }
