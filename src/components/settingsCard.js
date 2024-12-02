@@ -1,14 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Card } from 'react-bootstrap';
-import { Plus, PencilFill } from 'react-bootstrap-icons';
+import { Plus, PencilFill, TrashFill} from 'react-bootstrap-icons';
 import { SettingsPopup } from './settingsPopup';
-import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { DeleteModal } from './deleteModal';
+import { getFirestore, collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
 import Plant from '../image/plant.png';
 
 export const SettingsCard = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [editingSetting, setEditingSetting] = useState(null); 
     const [plantSettings, setPlantSettings] = useState([]);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
     const openModal = (setting = null) => {
         setEditingSetting(setting); 
@@ -34,12 +36,24 @@ export const SettingsCard = () => {
         }
     }, []);
 
+    const handleDelete = (setting) => {
+        setEditingSetting(setting);
+        setIsDeleteModalOpen(true);
+    }
+    
+    // Sort the plantSettings array alphabetically by title
+    const sortedPlantSettings = plantSettings.sort((a, b) => {
+      if (a.title < b.title) return -1;
+      if (a.title > b.title) return 1;
+      return 0;
+    });
+
     return (
       <>
         <div className='d-flex flex-wrap justify-content-center gap-3'>
           <div className='position-relative d-flex flex-wrap justify-content-center gap-3'>
-          {plantSettings.length > 0 ? (
-            plantSettings.map((setting, index) => (
+          {sortedPlantSettings.length > 0 ? (
+            sortedPlantSettings.map((setting, index) => (
               <Card key={index} style={{ width: '13rem', height: '15rem', margin: '10px', backgroundColor: '#80AF81' }}>
                 <Card.Body>
                   <div className='d-flex flex-wrap '>
@@ -54,9 +68,12 @@ export const SettingsCard = () => {
                   <Card.Text>
                     Water Level: <br/> {setting.waterLevel} ML
                   </Card.Text>
-                  <div className='d-flex justify-content-end' style={{ position: 'absolute', bottom: '10px', width: '80%' }}>
+                  <div className='d-flex justify-content-end gap-3' style={{ position: 'absolute', bottom: '10px', width: '90%' }}>
                     <Button variant="primary" onClick={() => openModal(setting)} style={{ borderRadius: '50%', width: '50px', height: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'gray'}} className='border-0'>
                       <PencilFill />
+                    </Button>
+                    <Button variant="primary" onClick={() => handleDelete(setting)} style={{ borderRadius: '50%', width: '50px', height: '50px', display: 'flex', justifyContent: 'center', alignItems: 'center', backgroundColor: 'red'}} className='border-0'>
+                      <TrashFill />
                     </Button>
                   </div>
                 </Card.Body>
@@ -70,6 +87,7 @@ export const SettingsCard = () => {
               <Plus size={100} />
             </div>
           </Button>
+          
 
           </div>
           
@@ -77,6 +95,14 @@ export const SettingsCard = () => {
             isOpen={isOpen} 
             onClose={closeModal} 
             editingSetting={editingSetting} 
+            fetchUserPlantSettings={fetchUserPlantSettings}
+          />
+
+          <DeleteModal
+            isOpen={isDeleteModalOpen}
+            onClose={() => setIsDeleteModalOpen(false)}
+            setting={editingSetting}
+            fetchUserPlantSettings={fetchUserPlantSettings}
           />
         </div>
       </>

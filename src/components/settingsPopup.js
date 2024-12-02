@@ -5,7 +5,7 @@ import { getFirestore, doc, setDoc } from "firebase/firestore";
 import { useToast } from "./useToast";
 import { v4 as uuidv4 } from 'uuid';
 
-export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
+export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantSettings }) => {
     const [title, setTitle] = useState('');
     const [potsize, setPotSize] = useState('');
     const [waterLevel, setWaterLevel] = useState('');
@@ -13,7 +13,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
     const db = getFirestore();
     const { success, errormsg } = useToast();
 
-    
+    // Clear all fields
     const clearAllFields = () => {
         setTitle('');
         setPotSize('');
@@ -21,6 +21,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
         setSchedules([{ days: [], time: '' }]);
     };
 
+    // Set fields when editing for opening the modal
     useEffect(() => {
         if (editingSetting) {
             setTitle(editingSetting.title);
@@ -34,6 +35,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
 
     if (!isOpen) return null;
 
+    //form functionalities
     const handleDayChange = (index, e) => {
         const day = e.target.value;
         setSchedules(schedules.map((schedule, i) =>
@@ -77,10 +79,16 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
         setWaterLevel(value > maxWaterLevel ? maxWaterLevel : value);
     };
 
+    //end of form functionalities
+
+    //estimated time to fill the pot
+    //delimitation; since there is no sensor to measure the flow rate
     const calculateTimeToFill = (waterLevel) => {
         const flowRate = 10; 
         return waterLevel / flowRate; 
     };
+
+    //save settings to firestore
     const saveSettingsToFirestore = async () => {
         const userId = localStorage.getItem('user');
     
@@ -103,7 +111,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
             });
             success('Settings saved successfully');
             clearAllFields();
-            window.location.reload();
+            fetchUserPlantSettings(localStorage.getItem('user'));
             onClose();
         } catch (error) {
             errormsg('Error saving settings');
@@ -120,7 +128,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting }) => {
     return (
         <Modal show={isOpen} onHide={onClose} backdrop="static" keyboard={false} centered scrollable style={{height:"70%"}}>
             <Modal.Header closeButton>
-                <Modal.Title>Add New Settings</Modal.Title>
+                <Modal.Title>{editingSetting ? 'Edit Settings': 'Add New Setting'}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
                 <Form onSubmit={handleSubmit}>
