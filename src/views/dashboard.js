@@ -4,10 +4,25 @@ import SideNav from '../components/sideNav';
 import BackgroundImage from '../image/dashboard_bg.png';
 import { SettingsCard } from '../components/settingsCard';
 import { getFirestore, collection, getDocs } from 'firebase/firestore';
+import { Question } from "react-bootstrap-icons";
+import { Button } from 'react-bootstrap';
+import { TutorialComponent } from '../components/tutorial';
+
+
 
 export const Dashboard = () => {
     const [plantSettings, setPlantSettings] = useState([]);
+    const [isOpen, setIsOpen] = useState(false);
 
+    const openTutorial = () => {
+        setIsOpen(true);
+    }
+
+    const closeTutorial = () => {
+        setIsOpen(false);
+    }
+
+    //fetch plant settings from firestore
     const fetchUserPlantSettings = async (userId) => {
         const db = getFirestore();
         const plantSettingsCollection = collection(db, 'users', userId, 'plantSettings');
@@ -15,7 +30,8 @@ export const Dashboard = () => {
         const plantSettingsList = plantSettingsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         setPlantSettings(plantSettingsList);
     };
-
+    
+    //fetch plant settings from firestore based on user id
     useEffect(() => {
         const userId = localStorage.getItem('user');
         if (userId) {
@@ -23,15 +39,15 @@ export const Dashboard = () => {
         }
     }, []);
     const arduinoIp = 'http://192.168.254.126'; // Replace with your Arduino's IP address
-const [isPumpOn, setIsPumpOn] = useState(false); // Add a state to track the pump status
-const [timeToFillActive, setTimeToFillActive] = useState(false); // Add a state to track the timeToFill status
+    const [isPumpOn, setIsPumpOn] = useState(false); // Add a state to track the pump status
+    const [timeToFillActive, setTimeToFillActive] = useState(false); // Add a state to track the timeToFill status
 
 useEffect(() => {
     const interval = setInterval(() => {
         const currentDay = new Date().toLocaleString('en-US', { weekday: 'long' });
         const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).padStart(5, '0'); // 24-hour format with leading zero
 
-        let conditionMet = false;
+        // let conditionMet = false;
         
         plantSettings.forEach(setting => {
             if (Array.isArray(setting.schedules)) { // Ensure schedules is an array
@@ -46,17 +62,18 @@ useEffect(() => {
                     }
 
                     if (days.includes(currentDay) && currentTime === time && !isPumpOn && !timeToFillActive) {
-                        console.log('Condition Met: Turning on pump for', timeToFill, 'seconds');
+                        // console.log('Condition Met: Turning on pump for', timeToFill, 'seconds');
                         turnOnPump(timeToFill); // Call the function to turn on the pump with timeToFill
-                        conditionMet = true;
+                        
+                    }else if (!days.includes(currentDay) || currentTime !== time) { 
+                        //this is to catch the case where the current day and time does not match the schedule
+                        //To avoid the pump being turned on for the wrong schedule
+                        //And to avoid the pump being turned on multiple times for the same schedule (if the timeToFill is only 1 second)
+                        setTimeToFillActive(false); 
                     }
                 });
             }
         });
-
-        if (!conditionMet) {
-            setTimeToFillActive(false); // Reset the flag if the condition is not met
-        }
 
     }, 1000); // Check every second
 
@@ -67,7 +84,7 @@ const turnOnPump = (timeToFill) => {
     fetch(`${arduinoIp}/ON`)
         .then(response => response.text())
         .then(data => {
-            console.log(data);
+            console.log(data); // to see the response from the Arduino
             setIsPumpOn(true); // Set the flag to indicate the pump is on
             setTimeToFillActive(true); // Set the flag to indicate the timeToFill is active
             // Turn off the pump after the specified timeToFill duration
@@ -102,6 +119,18 @@ const turnOffPump = () => {
             <div className='z-1 position-absolute' style={{ left: 150, top: 50}}>
                 <SettingsCard />
             </div>
+
+            <div>
+            <Button 
+                variant="light" 
+                className="position-fixed rounded-circle" 
+                onClick={openTutorial}
+                style={{ bottom: "20px", right: "20px", width: "50px", height: "50px", zIndex: 1000 }}
+            >
+                <Question size={24} />
+            </Button>
+       </div>
+         <TutorialComponent pageLocation="dashboard" isOpen={isOpen} onClose={closeTutorial} />
         </div>
     );
 };
