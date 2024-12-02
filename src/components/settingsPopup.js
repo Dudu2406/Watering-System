@@ -72,13 +72,21 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
     const calculateMaxWaterLevel = (potsize) => {
         return potsize * 1000 * 0.8; // 80% of the pot size in milliliters
     };
-
+    
     const handleWaterLevelChange = (e) => {
         const value = Number(e.target.value);
         const maxWaterLevel = calculateMaxWaterLevel(potsize);
-        setWaterLevel(value > maxWaterLevel ? maxWaterLevel : value);
+    
+        // Ensure the value is within the min and max range
+        if (value < 1) {
+            setWaterLevel(1);
+        } else if (value > maxWaterLevel) {
+            setWaterLevel(maxWaterLevel);
+        } else {
+            setWaterLevel(value);
+        }
     };
-
+    
     //end of form functionalities
 
     //estimated time to fill the pot
@@ -149,6 +157,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
                             placeholder="Enter water level" 
                             value={waterLevel} 
                             onChange={handleWaterLevelChange}
+                            min="1"
                             max={calculateMaxWaterLevel(potsize)}
                         />
                         <Form.Text className="text-muted">
