@@ -7,12 +7,16 @@ import { getFirestore, collection, getDocs } from 'firebase/firestore';
 import { Question } from "react-bootstrap-icons";
 import { Button } from 'react-bootstrap';
 import { TutorialComponent } from '../components/tutorial';
+import { useNavigate } from 'react-router-dom';
 
 
 
 export const Dashboard = () => {
     const [plantSettings, setPlantSettings] = useState([]);
     const [isOpen, setIsOpen] = useState(false);
+    const [relayStatus, setRelayStatus] = useState({ 0: false, 1: false, 2: false });
+    const [timeToFillActive, setTimeToFillActive] = useState({ 0: false, 1: false, 2: false });
+    const navigate = useNavigate();
 
     const openTutorial = () => {
         setIsOpen(true);
@@ -38,15 +42,21 @@ export const Dashboard = () => {
             fetchUserPlantSettings(userId);
         }
     }, []);
-    const arduinoIp = 'http://192.168.254.126'; // Replace with your Arduino's IP address
+
+    //ARDUINO CODES
+    // 192.168.254.126
+    //192.168.163.151 
+    //192.168.66.151
+    const arduinoIp = 'http://192.168.163.151'; // Replace with your Arduino's IP address
     const [isPumpOn, setIsPumpOn] = useState(false); // Add a state to track the pump status
-    const [timeToFillActive, setTimeToFillActive] = useState(false); // Add a state to track the timeToFill status
+    const pumpTimeouts = {};
+    // const [timeToFillActive, setTimeToFillActive] = useState(false); // Add a state to track the timeToFill status
 
-useEffect(() => {
-    const interval = setInterval(() => {
-        const currentDay = new Date().toLocaleString('en-US', { weekday: 'long' });
-        const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).padStart(5, '0'); // 24-hour format with leading zero
-
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const currentDay = new Date().toLocaleString('en-US', { weekday: 'long' });
+            const currentTime = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }).padStart(5, '0'); // 24-hour format with leading zero
+    
         // let conditionMet = false;
         
         plantSettings.forEach(setting => {
@@ -60,50 +70,90 @@ useEffect(() => {
                     if (time.length === 4) {
                         time = '0' + time;
                     }
+                    // console.log(time, currentTime);
 
-                    if (days.includes(currentDay) && currentTime === time && !isPumpOn && !timeToFillActive) {
-                        // console.log('Condition Met: Turning on pump for', timeToFill, 'seconds');
-                        turnOnPump(timeToFill); // Call the function to turn on the pump with timeToFill
+                    if (schedule.days.includes(currentDay) && currentTime === schedule.time && !isPumpOn &&
+                    !relayStatus[setting.pin] && !timeToFillActive[setting.pin]) {
+                        console.log('Condition Met: Turning on pump for', timeToFill, 'seconds', setting.pin);
+                        turnOnPump(setting.pin, setting.timeToFill);
                         
-                    }else if (!days.includes(currentDay) || currentTime !== time) { 
+                        // turnOnPump(timeToFill); // Call the function to turn on the pump with timeToFill
+                       
+                    }else if (!days.includes(currentDay) && currentTime !== time) { 
                         //this is to catch the case where the current day and time does not match the schedule
                         //To avoid the pump being turned on for the wrong schedule
                         //And to avoid the pump being turned on multiple times for the same schedule (if the timeToFill is only 1 second)
-                        setTimeToFillActive(false); 
+                        // console.log('Condition Not Met: Pump is off');
+                        setTimeToFillActive(prev => ({ ...prev, [setting.pin]: false }));
                     }
                 });
             }
         });
-
     }, 1000); // Check every second
 
     return () => clearInterval(interval);
 }, [plantSettings, isPumpOn, timeToFillActive]);
 
-const turnOnPump = (timeToFill) => {
-    fetch(`${arduinoIp}/ON`)
+const turnOnPump = (pinIndex, timeToFill) => {
+    console.log(`Turning on pump ${pinIndex} for ${timeToFill} seconds`);
+
+    fetch(`${arduinoIp}/ON${pinIndex}`)
         .then(response => response.text())
-        .then(data => {
-            console.log(data); // to see the response from the Arduino
-            setIsPumpOn(true); // Set the flag to indicate the pump is on
-            setTimeToFillActive(true); // Set the flag to indicate the timeToFill is active
-            // Turn off the pump after the specified timeToFill duration
-            setTimeout(() => {
-                turnOffPump();
+        .then(() => {
+            setIsPumpOn(true);
+            setRelayStatus(prev => ({ ...prev, [pinIndex]: true }));
+            setTimeToFillActive(prev => ({ ...prev, [pinIndex]: true }));
+
+            console.log(`Scheduling pump ${pinIndex} to turn off after ${timeToFill * 1000} milliseconds`);
+            
+            // Clear any existing timeout for this pin
+            if (pumpTimeouts[pinIndex]) {
+                clearTimeout(pumpTimeouts[pinIndex]);
+            }
+
+            pumpTimeouts[pinIndex] = setTimeout(() => {
+                turnOffPump(pinIndex);
             }, timeToFill * 1000);
         })
         .catch(error => console.error('Error:', error));
 };
 
-const turnOffPump = () => {
-    fetch(`${arduinoIp}/OFF`)
+const turnOffPump = (pinIndex) => {
+    console.log(`Attempting to turn off pump ${pinIndex}`);
+
+    fetch(`${arduinoIp}/OFF${pinIndex}`)
         .then(response => response.text())
-        .then(data => {
-            console.log(data);
-            setIsPumpOn(false); // Set the flag to indicate the pump is off
+        .then(() => {
+            setIsPumpOn(false);
+            console.log(`Pump ${pinIndex} turned off`);
+            setRelayStatus(prev => ({ ...prev, [pinIndex]: false }));
         })
         .catch(error => console.error('Error:', error));
 };
+// const turnOnPump = (timeToFill) => {
+//     fetch(`${arduinoIp}/ON`)
+//         .then(response => response.text())
+//         .then(data => {
+//             console.log(data); // to see the response from the Arduino
+//             setIsPumpOn(true); // Set the flag to indicate the pump is on
+//             setTimeToFillActive(true); // Set the flag to indicate the timeToFill is active
+//             // Turn off the pump after the specified timeToFill duration
+//             setTimeout(() => {
+//                 turnOffPump();
+//             }, timeToFill * 1000);
+//         })
+//         .catch(error => console.error('Error:', error));
+// };
+
+// const turnOffPump = () => {
+//     fetch(`${arduinoIp}/OFF`)
+//         .then(response => response.text())
+//         .then(data => {
+//             console.log(data);
+//             setIsPumpOn(false); // Set the flag to indicate the pump is off
+//         })
+//         .catch(error => console.error('Error:', error));
+// };
     
 
     return (

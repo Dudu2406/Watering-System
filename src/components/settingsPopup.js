@@ -10,6 +10,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
     const [potsize, setPotSize] = useState('');
     const [waterLevel, setWaterLevel] = useState('');
     const [schedules, setSchedules] = useState([{ days: [], time: '' }]);
+    const [pin, setPin] = useState('');
     const db = getFirestore();
     const { success, errormsg } = useToast();
 
@@ -19,6 +20,8 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
         setPotSize('');
         setWaterLevel('');
         setSchedules([{ days: [], time: '' }]);
+        setPin('');
+
     };
 
     // Set fields when editing for opening the modal
@@ -28,6 +31,7 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
             setPotSize(editingSetting.potsize);
             setWaterLevel(editingSetting.waterLevel);
             setSchedules(editingSetting.schedules);
+            setPin(editingSetting.pin);
         } else {
             clearAllFields();
         }
@@ -112,14 +116,16 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
             await setDoc(docRef, {
                 id: uniqueId,
                 title,
+                pin,
                 potsize,
                 waterLevel,
                 schedules,
-                timeToFill: calculateTimeToFill(waterLevel)
+                timeToFill: calculateTimeToFill(waterLevel),
             });
             success('Settings saved successfully');
             clearAllFields();
-            fetchUserPlantSettings(localStorage.getItem('user'));
+            // fetchUserPlantSettings(localStorage.getItem('user'));
+            window.location.reload();
             onClose();
         } catch (error) {
             errormsg('Error saving settings');
@@ -143,6 +149,19 @@ export const SettingsPopup = ({ isOpen, onClose, editingSetting, fetchUserPlantS
                     <Form.Group className="mb-3" controlId="formTitle">
                         <Form.Label>Title</Form.Label>
                         <Form.Control type="text" placeholder="Enter title" value={title} onChange={(e) => setTitle(e.target.value)} />
+                    </Form.Group>
+
+                    <Form.Group className="mb-3" controlId="formPinSelection">
+                        <Form.Label>Select Machine:</Form.Label>
+                        <Form.Control 
+                            as="select" 
+                            value={pin} 
+                            onChange={(e) => setPin(Number(e.target.value))} // Convert to number
+                        >
+                            <option value="0">Machine 1</option>
+                            <option value="1">Machine 2</option>
+                            <option value="2">Machine 3</option>
+                        </Form.Control>
                     </Form.Group>
 
                     <Form.Group className="mb-3" controlId="formPotSize">
